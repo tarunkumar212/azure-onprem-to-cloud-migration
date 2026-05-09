@@ -1,0 +1,49 @@
+# Terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfvars
+crash.log
+override.tf
+.terraformrc
+terraform.rc
+
+# Azure credentials — NEVER commit these
+.azure/
+azure.json
+*.pem
+*.key
+*.pfx
+*.p12
+
+# Environment files with secrets
+.env
+.env.*
+local.settings.json
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+dist/
+build/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+
+# Azure Functions local config
+local.settings.json
