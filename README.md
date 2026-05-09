@@ -57,6 +57,8 @@ Many organisations run critical workloads on ageing on-premises infrastructure �
 - Git
 
 ## Repository Structure
+
+```text
 azure-onprem-to-cloud-migration/
 ├── .github/
 │   └── workflows/
@@ -84,6 +86,8 @@ azure-onprem-to-cloud-migration/
 │   ├── migrate-db.sh           # SQLite to Azure SQL migration
 │   └── teardown.sh             # Resource cleanup
 └── README.md
+```
+
 ## Setup Guide
 
 > Full step-by-step instructions in [docs/runbooks/deployment.md](docs/runbooks/deployment.md)
