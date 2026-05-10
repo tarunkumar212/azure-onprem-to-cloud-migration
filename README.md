@@ -112,11 +112,12 @@ az deployment group create \
 
 | Phase | Description | Status |
 |---|---|---|
-| Phase 1 | Foundation and repo setup | In Progress |
-| Phase 2 | On-premises environment simulation | Planned |
-| Phase 3 | Database and app migration | Planned |
-| Phase 4 | BCDR — Backup and Site Recovery | Planned |
-| Phase 5 | Monitoring and observability | Planned |
+| Phase 1 | Foundation and repo setup | ✅ Complete |
+| Phase 2 | Network layer — VNet, Subnets, NSG | ✅ Complete |
+| Phase 3 | On-premises environment simulation | 🔄 In Progress |
+| Phase 4 | Database and app migration | ⏳ Planned |
+| Phase 5 | BCDR — Backup and Site Recovery | ⏳ Planned |
+| Phase 6 | Monitoring and observability | ⏳ Planned |
 
 ## Challenges and Lessons Learned
 
