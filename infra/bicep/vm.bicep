@@ -26,11 +26,11 @@ resource publicIp 'Microsoft.Network/publicIPAddresses@2023-04-01' = {
   location: location
 
   sku: {
-    name: 'Basic'
+    name: 'Standard'
   }
 
   properties: {
-    publicIPAllocationMethod: 'Dynamic'
+    publicIPAllocationMethod: 'Static'
   }
 }
 

@@ -119,6 +119,75 @@ az deployment group create \
 | Phase 5 | BCDR — Backup and Site Recovery | ⏳ Planned |
 | Phase 6 | Monitoring and observability | ⏳ Planned |
 
+
+## Before Migration State — Documented Day 4
+
+This section captures the complete state of the on-premises 
+system before migration begins. All metrics and data recorded 
+here will be compared against the post-migration Azure system 
+to validate migration success.
+
+### Application Stack
+
+| Component | Technology | Details |
+|---|---|---|
+| Operating System | Ubuntu 22.04 LTS | Azure VM Standard_B2s |
+| Web Server | Nginx 1.18 | Reverse proxy on port 80 |
+| App Server | Gunicorn | 2 workers on port 5000 |
+| Framework | Python Flask 3.0 | Python 3.12 |
+| Database | SQLite | File at /home/azureuser/flaskapp/app.db |
+
+### API Endpoints Verified
+
+| Endpoint | Method | Status | Response |
+|---|---|---|---|
+| / | GET | ✅ Working | HTML product page |
+| /api/products | GET | ✅ Working | JSON array of products |
+| /api/products | POST | ✅ Working | Creates new product |
+| /health | GET | ✅ Working | JSON health status |
+| /api/migration-log | GET | ✅ Working | JSON log entries |
+
+### Database State
+
+| Item | Detail |
+|---|---|
+| Database type | SQLite (file-based) |
+| Tables | products, migration_log |
+| Product records | 6 (5 original + 1 test) |
+| Schema exported | docs/database-export.sql |
+| Data exported | docs/database-export.sql |
+
+### Performance Baseline
+
+| Metric | Value |
+|---|---|
+| Tool | Apache Benchmark |
+| Requests | 500 total, 10 concurrent |
+| Requests per second | 1781.17 |
+| Mean response time | PASTE YOUR NUMBER HERE ms |
+| 95th percentile | PASTE YOUR NUMBER HERE ms |
+| Failed requests | 0 |
+
+### Known Limitations of On-Premises Setup
+
+| Limitation | Impact | Solution After Migration |
+|---|---|---|
+| Single VM | If VM goes down, app is down | App Service has built-in HA |
+| SQLite database | No concurrent writes, no backups | Azure SQL has HA and auto-backup |
+| Manual scaling | Must resize VM manually | App Service auto-scales |
+| Manual OS patching | Security risk if delayed | App Service manages OS |
+| No disaster recovery | Data loss if disk fails | Azure Backup + Site Recovery |
+
+### What Changes During Migration
+
+| Layer | Before (On-Premises) | After (Azure Cloud) |
+|---|---|---|
+| App hosting | Azure VM + Nginx + Gunicorn | Azure App Service |
+| Database | SQLite on VM disk | Azure SQL Database |
+| Deployment | Manual SSH and copy | GitHub Actions CI/CD |
+| Monitoring | Basic Azure Monitor | Full observability stack |
+| BCDR | None | Backup + Site Recovery |
+
 ## Challenges and Lessons Learned
 
 > This section will be updated throughout the project
