@@ -1,93 +1,63 @@
-# app.py — Simulated on-premises Flask application
-# This app runs on an Azure VM simulating an on-premises server
-# It will be migrated to Azure App Service + Azure SQL in Phase 3
+# app.py — Flask application updated for Azure SQL
+# This version connects to Azure SQL Database instead of SQLite
+# Deployed on Azure App Service (after Day 7 migration)
+# Database: Azure SQL Database (migrated from SQLite on Day 6)
 
-import sqlite3
+import pyodbc
 import os
 from flask import Flask, jsonify, request, render_template_string
 
 app = Flask(__name__)
-DB_PATH = '/home/azureuser/flaskapp/app.db'
 
-# ── Database setup ─────────────────────────────────────
+# ── Database connection ────────────────────────────────
+# Credentials read from environment variables
+# Never hardcoded — security best practice
 def get_db():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
-
-def init_db():
-    conn = get_db()
-    conn.execute('''
-        CREATE TABLE IF NOT EXISTS products (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            description TEXT,
-            price REAL NOT NULL,
-            stock INTEGER DEFAULT 0,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
-    conn.execute('''
-        CREATE TABLE IF NOT EXISTS migration_log (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            event TEXT NOT NULL,
-            details TEXT,
-            logged_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
-    # Insert sample data if table is empty
-    count = conn.execute('SELECT COUNT(*) FROM products').fetchone()[0]
-    if count == 0:
-        sample_products = [
-            ('Laptop', 'High performance laptop', 75000.00, 15),
-            ('Monitor', '27 inch 4K monitor', 32000.00, 8),
-            ('Keyboard', 'Mechanical keyboard', 5500.00, 25),
-            ('Mouse', 'Wireless ergonomic mouse', 3200.00, 30),
-            ('Headset', 'Noise cancelling headset', 12000.00, 12),
-        ]
-        conn.executemany(
-            'INSERT INTO products (name, description, price, stock) VALUES (?,?,?,?)',
-            sample_products
-        )
-        conn.execute(
-            "INSERT INTO migration_log (event, details) VALUES (?,?)",
-            ('DB_INIT', 'Database initialised with sample product data on on-premises VM')
-        )
-    conn.commit()
-    conn.close()
+    conn_string = (
+        "Driver={ODBC Driver 18 for SQL Server};"
+        f"Server={os.environ.get('SQL_SERVER')};"
+        f"Database={os.environ.get('SQL_DATABASE')};"
+        f"Uid={os.environ.get('SQL_USERNAME')};"
+        f"Pwd={os.environ.get('SQL_PASSWORD')};"
+        "Encrypt=yes;"
+        "TrustServerCertificate=no;"
+    )
+    return pyodbc.connect(conn_string)
 
 # ── HTML Template ──────────────────────────────────────
 HTML_TEMPLATE = '''
 <!DOCTYPE html>
 <html>
 <head>
-    <title>On-Premises App — Pre-Migration</title>
+    <title>Migration App — Azure SQL</title>
     <style>
         body { font-family: Arial, sans-serif; max-width: 900px;
                margin: 40px auto; padding: 0 20px; background: #f5f5f5; }
-        .header { background: #d9534f; color: white;
+        .header { background: #0078d4; color: white;
                   padding: 20px; border-radius: 8px; margin-bottom: 20px; }
-        .badge { background: #f0ad4e; color: #333; padding: 4px 10px;
+        .badge { background: #50e6ff; color: #003a4c; padding: 4px 10px;
                  border-radius: 4px; font-size: 13px; font-weight: bold; }
         table { width: 100%; border-collapse: collapse; background: white;
                 border-radius: 8px; overflow: hidden; }
-        th { background: #333; color: white; padding: 12px; text-align: left; }
+        th { background: #0078d4; color: white; padding: 12px; text-align: left; }
         td { padding: 10px 12px; border-bottom: 1px solid #eee; }
-        tr:hover { background: #f9f9f9; }
-        .info { background: #fff3cd; padding: 12px; border-radius: 6px;
-                margin-bottom: 16px; border-left: 4px solid #ffc107; }
+        tr:hover { background: #f0f7ff; }
+        .info { background: #e8f4fd; padding: 12px; border-radius: 6px;
+                margin-bottom: 16px; border-left: 4px solid #0078d4; }
     </style>
 </head>
 <body>
     <div class="header">
         <h1>Product Inventory System</h1>
-        <span class="badge">ON-PREMISES SERVER — PRE-MIGRATION</span>
-        <p style="margin:8px 0 0">Running on: Azure VM (Ubuntu 22.04) |
-           Database: SQLite | Web server: Nginx + Gunicorn</p>
+        <span class="badge">AZURE CLOUD — POST-MIGRATION</span>
+        <p style="margin:8px 0 0">
+            Database: Azure SQL Database |
+            Server: {{ server }}
+        </p>
     </div>
     <div class="info">
-        ⚠️ This application is running on a simulated on-premises server.
-        It will be migrated to Azure App Service + Azure SQL Database.
+        ✅ This application has been migrated to Azure cloud services.
+        Database is now Azure SQL Database (was SQLite on-premises).
     </div>
     <h2>Products ({{ count }} total)</h2>
     <table>
@@ -97,11 +67,11 @@ HTML_TEMPLATE = '''
         </tr>
         {% for p in products %}
         <tr>
-            <td>{{ p['id'] }}</td>
-            <td>{{ p['name'] }}</td>
-            <td>{{ p['description'] }}</td>
-            <td>{{ "%.2f"|format(p['price']) }}</td>
-            <td>{{ p['stock'] }}</td>
+            <td>{{ p.id }}</td>
+            <td>{{ p.name }}</td>
+            <td>{{ p.description }}</td>
+            <td>{{ "%.2f"|format(p.price) }}</td>
+            <td>{{ p.stock }}</td>
         </tr>
         {% endfor %}
     </table>
@@ -113,28 +83,41 @@ HTML_TEMPLATE = '''
 @app.route('/')
 def index():
     conn = get_db()
-    products = conn.execute('SELECT * FROM products ORDER BY id').fetchall()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM products ORDER BY id')
+    rows = cursor.fetchall()
+    columns = [col[0] for col in cursor.description]
+    products = [
+        dict(zip(columns, row)) for row in rows
+    ]
     conn.close()
     return render_template_string(
         HTML_TEMPLATE,
         products=products,
-        count=len(products)
+        count=len(products),
+        server=os.environ.get('SQL_SERVER', 'unknown')
     )
 
 @app.route('/api/products', methods=['GET'])
 def get_products():
     conn = get_db()
-    products = conn.execute('SELECT * FROM products').fetchall()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM products')
+    rows = cursor.fetchall()
+    columns = [col[0] for col in cursor.description]
+    products = [dict(zip(columns, row)) for row in rows]
     conn.close()
-    return jsonify([dict(p) for p in products])
+    return jsonify(products)
 
 @app.route('/api/products', methods=['POST'])
 def add_product():
     data = request.get_json()
     conn = get_db()
-    conn.execute(
+    cursor = conn.cursor()
+    cursor.execute(
         'INSERT INTO products (name, description, price, stock) VALUES (?,?,?,?)',
-        (data['name'], data.get('description',''), data['price'], data.get('stock', 0))
+        (data['name'], data.get('description',''),
+         data['price'], data.get('stock', 0))
     )
     conn.commit()
     conn.close()
@@ -144,20 +127,23 @@ def add_product():
 def health():
     return jsonify({
         'status': 'healthy',
-        'environment': 'on-premises-vm',
-        'database': 'sqlite',
-        'server': 'nginx+gunicorn'
+        'environment': 'azure-app-service',
+        'database': 'azure-sql',
+        'server': os.environ.get('SQL_SERVER', 'unknown')
     })
 
 @app.route('/api/migration-log')
 def migration_log():
     conn = get_db()
-    logs = conn.execute(
+    cursor = conn.cursor()
+    cursor.execute(
         'SELECT * FROM migration_log ORDER BY logged_at DESC'
-    ).fetchall()
+    )
+    rows = cursor.fetchall()
+    columns = [col[0] for col in cursor.description]
+    logs = [dict(zip(columns, row)) for row in rows]
     conn.close()
-    return jsonify([dict(l) for l in logs])
+    return jsonify(logs)
 
 if __name__ == '__main__':
-    init_db()
     app.run(host='0.0.0.0', port=5000, debug=False)

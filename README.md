@@ -112,12 +112,20 @@ az deployment group create \
 
 | Phase | Description | Status |
 |---|---|---|
-| Phase 1 | Foundation and repo setup | ✅ Complete |
-| Phase 2 | Network layer — VNet, Subnets, NSG | ✅ Complete |
-| Phase 3 | On-premises environment simulation | 🔄 In Progress |
-| Phase 4 | Database and app migration | ⏳ Planned |
-| Phase 5 | BCDR — Backup and Site Recovery | ⏳ Planned |
-| Phase 6 | Monitoring and observability | ⏳ Planned |
+| Phase 1 | Foundation and repo setup | ✅ Complete — Day 1 |
+| Phase 2 | Network layer — VNet, Subnets, NSG | ✅ Complete — Day 2 |
+| Phase 3 | On-premises VM simulation | ✅ Complete — Day 3 |
+| Phase 4 | Testing, validation, baseline metrics | ✅ Complete — Day 4 |
+| Phase 5 | Azure Migrate assessment | ✅ Complete — Day 5 |
+| Phase 6 | Azure SQL deployment and data migration | ✅ Complete — Day 6 |
+| Phase 7 | App Service — Flask migration | 🔄 Tomorrow — Day 7 |
+| Phase 8 | GitHub Actions CI/CD | ⏳ Planned — Day 8 |
+| Phase 9 | Azure Backup | ⏳ Planned — Day 9 |
+| Phase 10 | Azure Site Recovery | ⏳ Planned — Day 10 |
+| Phase 11 | After-migration diagrams and analysis | ⏳ Planned — Day 11 |
+| Phase 12 | Migration report | ⏳ Planned — Day 12 |
+| Phase 13 | Documentation polish | ⏳ Planned — Day 13 |
+| Phase 14 | LinkedIn post and project complete | ⏳ Planned — Day 14 |
 
 
 ## Before Migration State — Documented Day 4
@@ -248,10 +256,80 @@ chose a more modern deployment model than the tool suggested.
 
 
 
+## Database Migration — SQLite to Azure SQL (Day 6)
+
+### What Changed
+
+| Item | Before — On-Premises | After — Azure Cloud |
+|---|---|---|
+| Database engine | SQLite 3 | Azure SQL Database |
+| Location | VM disk — app.db file | Azure managed infrastructure |
+| Backup | None | Automated every 5–10 minutes |
+| High availability | None | 99.99% SLA |
+| Concurrent writes | Not supported | Fully supported |
+| Admin overhead | Manual | Fully managed by Azure |
+| Region | East US (VM) | West US (SQL) |
+
+### Data Type Mapping — SQLite to Azure SQL
+
+| Column | SQLite Type | Azure SQL Type | Reason |
+|---|---|---|---|
+| id | INTEGER PRIMARY KEY AUTOINCREMENT | INT IDENTITY(1,1) | SQL Server auto-increment |
+| name | TEXT | NVARCHAR(255) | Unicode text with size limit |
+| description | TEXT | NVARCHAR(500) | Unicode text with size limit |
+| price | REAL | DECIMAL(10,2) | Precise decimal for money |
+| stock | INTEGER | INT | Direct equivalent |
+| created_at | TIMESTAMP | DATETIME2 | SQL Server datetime type |
+
+### Migration Process
+
+1. Schema exported from SQLite on Day 4 — docs/database-schema.sql
+2. Azure SQL schema created with converted data types — docs/azure-sql-schema.sql
+3. Data exported from SQLite on Day 4 — docs/database-export.sql
+4. Migration script reads export file and rewrites INSERT statements
+   to include column list required by Azure SQL IDENTITY columns
+5. IDENTITY_INSERT enabled to preserve original IDs
+6. Row count validated — 6 products, 1 migration log entry
+
+### Validation Result
+
+| Check | SQLite | Azure SQL | Match |
+|---|---|---|---|
+| Products | 6 rows | 6 rows | ✅ |
+| Migration log | 1 row | 1 row | ✅ |
+| Data integrity | Spot checked | Spot checked | ✅ |
+
+### Azure SQL Configuration
+
+| Setting | Value |
+|---|---|
+| Logical server | sqlserver-migration-dev.database.windows.net |
+| Database name | sqldb-migration-dev |
+| Region | West US |
+| Pricing tier | Basic — 5 DTUs |
+| Max storage | 2 GB |
+| Backup retention | 7 days built in |
+| Connection security | TLS 1.2 encrypted |
+
+### Security Approach
+
+- Password stored as environment variable — never in code
+- Never committed to GitHub
+- Azure SQL firewall restricts to known IPs only
+- All connections encrypted — Encrypt=yes in connection string
+- Next improvement — Azure Key Vault (Project 2)
+
+
 
 ## Challenges and Lessons Learned
 
-> This section will be updated throughout the project
+SQLite exports INSERT statements without column lists.
+Azure SQL requires explicit column lists when inserting
+into IDENTITY columns with IDENTITY_INSERT ON.
+
+Fix — Python migration script rewrites each INSERT statement
+to add the column list before running against Azure SQL.
+This is documented in scripts/migrate_db.py.
 
 ## Cost Analysis
 
