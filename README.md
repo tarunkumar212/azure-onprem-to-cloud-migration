@@ -188,6 +188,67 @@ to validate migration success.
 | Monitoring | Basic Azure Monitor | Full observability stack |
 | BCDR | None | Backup + Site Recovery |
 
+
+
+
+## Azure Migrate Assessment Results
+
+**Project:** migrate-onprem-assessment
+**Assessment:** assessment-onprem-vm
+**Assessment type:** Import-based (CSV)
+**Target:** Azure VM (Lift and Shift)
+**Date:** Day 5 of migration project
+
+### Readiness Result
+
+| Check | Result |
+|---|---|
+| Overall readiness | Ready with conditions |
+| OS compatibility | ✅ Passed |
+| Boot type | ✅ Passed |
+| Storage | ✅ Passed |
+| Compute | ✅ Passed |
+| Security | ✅ Passed |
+| Migration issues | Minor warnings only (see screenshot) |
+
+### What "Ready with Conditions" Means
+
+The VM passed all 5 core readiness checks. The "conditions" 
+are informational warnings from using import-based assessment 
+without a live agent — no performance history was available 
+so Azure used the CSV specs directly.
+
+This does not block migration. All critical checks passed.
+
+### Why Azure VM is the Recommended Target
+
+Azure Migrate recommends Azure VM (lift and shift) because 
+it assesses like-for-like replacement. Our actual migration 
+decision is different — we chose App Service + Azure SQL 
+(PaaS) over Azure VM (IaaS) for the following reasons:
+
+| Factor | Azure VM (Migrate Recommendation) | Our Choice: App Service + SQL |
+|---|---|---|
+| OS management | Manual patching required | Fully managed by Azure |
+| Scaling | Manual VM resize | Auto-scaling built in |
+| Availability | Depends on VM uptime | 99.95% SLA built in |
+| Cost | Fixed hourly regardless of traffic | Scales with actual usage |
+| Operational overhead | High | Low |
+
+### Assessment Recommendation vs Actual Decision
+
+Azure Migrate recommended: Standard_D2s_v4 Azure VM
+Our actual migration target: Azure App Service + Azure SQL
+
+Reason for deviation: PaaS services (App Service + SQL) 
+provide better reliability, scalability, and lower operational 
+overhead than a direct VM lift-and-shift. The assessment 
+confirms the workload is compatible with Azure — we simply 
+chose a more modern deployment model than the tool suggested.
+
+
+
+
 ## Challenges and Lessons Learned
 
 > This section will be updated throughout the project
